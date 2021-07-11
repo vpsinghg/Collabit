@@ -6,7 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Support\Facades\DB;
-
+use App\Services\UserService;
 use Illuminate\Support\Facades\Auth;
 
 class UserController extends Controller
@@ -44,6 +44,45 @@ class UserController extends Controller
         }
     }
 
+
+    public function changePassword(Request $request) {
+
+        // validate incoming fields
+        $this->validate($request, [
+            'email' =>  'required|email|exists:users,email',
+            'oldpassword' =>    'required|min:6',   
+            'newpassword'  =>   'required|min:6',
+        ]);
+
+        $user = User::where('email', $request['email'])->first();
+        // Email check if user exits or not with such email
+        if (!$user) {
+			return UserService::unauthorizedResponse();
+		}
+
+		// Old Password check
+		if (!Hash::check($request['oldpassword'], $user->password)) {
+			return UserService::unauthorizedResponse();
+		}
+        // new password hashing
+        $newpassword   =   Hash::make($request->input('newpassword'), [
+            'rounds'    =>  12,
+        ]);
+        // password update and save
+        $user->password =   $newpassword;
+
+        $user->api_token =sha1(time());
+        $user->save();
+
+        return [
+			'status' => 'success',
+			'message' => 'Password is updated successfully.'
+		];
+
+
+    }
+
+
 	public function profile()
 	{
         return[
@@ -51,12 +90,5 @@ class UserController extends Controller
         ];
 	}
 
-    public function verify() {
-
-		return [
-			'status' => 'success',
-			'message' => 'Token is verified.'
-		];
-	}
 
 }
