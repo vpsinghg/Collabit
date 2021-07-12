@@ -34,6 +34,10 @@ $router->group(['prefix' => 'api/'], function() use ($router) {
     $router->get('auth/verify_email/{token}',[
         'as' => 'Verify', 'uses' => 'EmailVerifyController@VerifyEmail'
     ]);
+    // forget password 
+    $router->get('auth/forget_password',['as'   =>  'ForgetPassword',   'uses'  =>  'AuthController@forget_password']);
+    $router->post('auth/forget_password_update/{token}',['as'   =>  'ForgetPasswordUpdate',   'uses'  =>  'AuthController@forget_password_change']);
+
     // request new token for account activation
     $router->get('auth/request_account_activation_mail',['as'    =>'request_account_activation_mail', 'uses' =>'AuthController@request_account_activation_mail']);
     // following route use auth middleware

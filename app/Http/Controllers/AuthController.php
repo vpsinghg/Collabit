@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Hash;
 use Carbon\Carbon;
 use Illuminate\Contracts\Auth\Authenticatable;
 use App\Mail\AccountActivationMail;
+use App\Mail\ForgetPasswordMail;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
@@ -139,5 +140,67 @@ class AuthController extends Controller
 
     }
 
+    public function forget_password(Request $request){
+
+        // validate incoming request parameters
+        $this->validate($request, [
+            'email' => 'required|email|exists:users,email',
+        ]);
+        $email  =   $request['email'];
+        $user  =   User::where('email', $email)->first();
+        if(! $user){
+            $res['success'] =   false;
+            $res['message'] =   'Account with this Email id does not exits.';
+            return  response($res);
+        }
+        $user->api_token =sha1(time());
+		$user->save();
+
+        Mail::to($email)->send(new ForgetPasswordMail($user));
+
+        $res['success'] =   true;
+        $res['message'] =   "We have sent you a mail on registered email id , Please check your email to change your account password";
+        $res['token']   =   $user->api_token;
+        return response()->json($res, Response::HTTP_OK);
+
+    }
+
+    public function forget_password_change(Request $request,$token){
+        // field validation
+        $this->validate($request, [
+            'email' => 'required|email|exists:users,email',
+            'password' => 'required|min:6',   
+        ]);
+        $email  =   $request['email'];
+        $password   =   $request->input('password');
+        // users exists or not with such email
+        $user  =   User::where('email', $email)->first();
+        if(! $user){
+            $res['success'] =   false;
+            $res['message'] =   'Account with this Email id does not exits.';
+            return  response($res);
+        }
+        else{
+            if($user->api_token !=$token){
+                $res['status'] =false;
+                $res['message'] ="Invalid url. Please check your Mail Inbox and click on Change Password button";
+                return  response($res);
+            }
+            else{
+                $password   =   Hash::make($request->input('password'), [
+                    'rounds'    =>  12,
+                ]);
+        
+                $user->password =$password;
+                $user->save();
+                $res['status'] =false;
+                $res['message'] ="Your password has been updated .please login with updated credentials";
+                return  response($res);
+
+            }
+        }
+
+
+    }
 
 }
