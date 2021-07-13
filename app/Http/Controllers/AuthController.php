@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 use Illuminate\Support\Facades\Mail;
+use Firebase\JWT\JWT;
+use Firebase\JWT\ExpiredException;
 
 use Illuminate\Http\Request;
 use App\Models\User;
@@ -21,6 +23,33 @@ class AuthController extends Controller
      * When user success login will retrive callback as api_token
 
     */
+
+    private $request;
+
+    public function __construct(Request $request) {
+        $this->request = $request;
+    }
+
+    /**
+     * Create a new token.
+     * 
+     * @param  \App\User   $user
+     * @return string
+     */
+    protected function jwt(User $user) {
+        $payload = [
+            'iss' => "Collabit-jwt", // Issuer of the token
+            'sub' => $user->id, // Subject of the token
+            'iat' => time(), // Time when JWT was issued. 
+            'exp' => time() + 60*60 // Expiration time
+        ];
+
+        // As you can see we are passing `JWT_SECRET` as the second parameter that will 
+        // be used to decode the token in the future.
+        return JWT::encode($payload, env('JWT_SECRET'));
+    } 
+
+
 
     public function register(Request $request){
         // validate fields
@@ -78,9 +107,8 @@ class AuthController extends Controller
                 // password is correct or not
                 if(Hash::check($password,$user->password)){
                     // this api_token generated here will be used for checking request are from loggined user or not
-                    $api_token = sha1(time());
-                    User::where('email', $email)->update(['api_token' => $api_token,'last_login' => Carbon::now()]);;
-                    return response()->json(['status' => 'success','api_token' => $api_token]);
+                    User::where('email', $email)->update(['last_login' => Carbon::now()]);;
+                    return response()->json(['status' => 'success','token' => $this->jwt($user)]);
                     return redirect()->route('Profile');
                     
                 }
@@ -94,7 +122,7 @@ class AuthController extends Controller
             }
             // Account exist but account is not activated yet because its not verified yet
             else{
-                $res['success'] =   false;
+                $res['success'] =   true;
                 $res['message'] =   'Please check your mail box and activate your account!';
                 return  response($res);
     
@@ -104,13 +132,19 @@ class AuthController extends Controller
     }
 
 
-    public function request_account_activation_mail(Request $request){
+    public function requestAccountActivationMail(Request $request){
         // validate incoming request parameters
         $this->validate($request, [
             'email' => 'required|email|exists:users,email',
         ]);
         $email  =   $request['email'];
         $user  =   User::where('email', $email)->first();
+
+        if(! $user){
+            $res['success'] =   false;
+            $res['message'] =   "Your account with this email does not  exist. Please SignUp";
+            return response()->json($res, Response::HTTP_OK); 
+        }
         // check account is already verified or not . If already verified send messsage for login
         if($user->email_verified){
             $res['success'] =   true;
@@ -129,10 +163,7 @@ class AuthController extends Controller
     }
 
 
-    public function logout(){
-        $user = Auth::user();
-        $user->api_token =sha1(time());
-		$user->save();
+    public function logout(){        
 		return [
 			'status' => 'success',
 			'message' => 'Logout successfully.'
@@ -140,7 +171,7 @@ class AuthController extends Controller
 
     }
 
-    public function forget_password(Request $request){
+    public function forgetPassword(Request $request){
 
         // validate incoming request parameters
         $this->validate($request, [
@@ -160,28 +191,26 @@ class AuthController extends Controller
 
         $res['success'] =   true;
         $res['message'] =   "We have sent you a mail on registered email id , Please check your email to change your account password";
-        $res['token']   =   $user->api_token;
         return response()->json($res, Response::HTTP_OK);
 
     }
 
-    public function forget_password_change(Request $request,$token){
+    public function forgetPasswordChange(Request $request){
         // field validation
         $this->validate($request, [
-            'email' => 'required|email|exists:users,email',
-            'password' => 'required|min:6',   
+            'password' => 'required|confirmed|min:6'
         ]);
-        $email  =   $request['email'];
+        $token  =   $request['token'];
         $password   =   $request->input('password');
-        // users exists or not with such email
-        $user  =   User::where('email', $email)->first();
-        if(! $user){
+        // token exists or not in url
+        if(! $token){
             $res['success'] =   false;
-            $res['message'] =   'Account with this Email id does not exits.';
+            $res['message'] =   'token is NULL, Please check your mail for valid password change url';
             return  response($res);
         }
         else{
-            if($user->api_token !=$token){
+            $user  =   User::where('api_token', $token)->first();
+            if(! $user){
                 $res['status'] =false;
                 $res['message'] ="Invalid url. Please check your Mail Inbox and click on Change Password button";
                 return  response($res);
@@ -190,10 +219,9 @@ class AuthController extends Controller
                 $password   =   Hash::make($request->input('password'), [
                     'rounds'    =>  12,
                 ]);
-        
                 $user->password =$password;
                 $user->save();
-                $res['status'] =false;
+                $res['status'] =true;
                 $res['message'] ="Your password has been updated .please login with updated credentials";
                 return  response($res);
 

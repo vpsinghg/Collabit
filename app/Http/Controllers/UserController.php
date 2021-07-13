@@ -28,8 +28,10 @@ class UserController extends Controller
      *
      * URL /user/{id}
      */ 
-    public function get_user(Request $request, $id) {
-        $user   =   User::where('id',$id)->get();
+    public function getUser(Request $request) {
+        $id =$request['id'];
+        $user = User::where('id', $id)->first();
+        
         if($user){
             $res['success'] =   true;
             $res['message'] =   $user;
@@ -39,9 +41,17 @@ class UserController extends Controller
             $res['success'] =   false;
             $res['message'] =   "Cannot find user with given id";
 
-            return  response[$res];
+            return  response($res);
 
         }
+    }
+
+    public function listUsers(Request $request) {
+        return[
+            'success' =>true,
+            'data' => User::All(),
+        ];
+
     }
 
 
@@ -49,12 +59,11 @@ class UserController extends Controller
 
         // validate incoming fields
         $this->validate($request, [
-            'email' =>  'required|email|exists:users,email',
             'oldpassword' =>    'required|min:6',   
             'newpassword'  =>   'required|min:6',
         ]);
-
-        $user = User::where('email', $request['email'])->first();
+        $logginedUser =Auth::user();
+        $user = User::where('email', $logginedUser['email'])->first();
         // Email check if user exits or not with such email
         if (!$user) {
 			return UserService::unauthorizedResponse();

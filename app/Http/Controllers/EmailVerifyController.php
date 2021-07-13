@@ -19,14 +19,13 @@ class EmailVerifyController extends Controller
     }
 
     //
-    public function VerifyEmail($token = null)
+    public function verifyEmail(Request $request)
     {
+        $token =$request['email_verification_token'];
     	if($token == null) {
 
             $res['success'] =   false;
             $res['message'] =   'Invalid Login Attempt, Token is null';
-            $res['data']    =   $user;
-
             return response()->json($res, Response::HTTP_OK);
 
     	}
@@ -34,12 +33,8 @@ class EmailVerifyController extends Controller
        $user = User::where('email_verification_token',$token)->first();
 
        if($user == null ){
-
-
         $res['success'] =   false;
-        $res['message'] =   'Invalid Login Attempt, Token Invalid User NULL';
-        $res['data']    =   $user;
-
+        $res['message'] =   'Invalid Verification token';
         return response()->json($res, Response::HTTP_OK);
 
        }

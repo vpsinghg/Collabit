@@ -15,6 +15,7 @@
 
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Cookie;
+use App\Models\User;
 $router->get('/', function () use ($router) {
     return $router->app->version();
 });
@@ -31,25 +32,27 @@ $router->group(['prefix' => 'api/'], function() use ($router) {
     // login route
     $router->post('auth/login', 'AuthController@login');
     // email verification route
-    $router->get('auth/verify_email/{token}',[
-        'as' => 'Verify', 'uses' => 'EmailVerifyController@VerifyEmail'
+    $router->get('auth/verify_email/',[
+        'as' => 'Verify', 'uses' => 'EmailVerifyController@verifyEmail'
     ]);
     // forget password 
-    $router->get('auth/forget_password',['as'   =>  'ForgetPassword',   'uses'  =>  'AuthController@forget_password']);
-    $router->post('auth/forget_password_update/{token}',['as'   =>  'ForgetPasswordUpdate',   'uses'  =>  'AuthController@forget_password_change']);
+    $router->post('auth/forget_password',['as'   =>  'forgetPassword',   'uses'  =>  'AuthController@forgetPassword']);
+    $router->post('auth/forget_password_update/',['as'   =>  'forgetPasswordChange',   'uses'  =>  'AuthController@forgetPasswordChange']);
 
     // request new token for account activation
-    $router->get('auth/request_account_activation_mail',['as'    =>'request_account_activation_mail', 'uses' =>'AuthController@request_account_activation_mail']);
+    $router->post('auth/request_account_activation_mail',['as'    =>'requestAccountActivationMail', 'uses' =>'AuthController@requestAccountActivationMail']);
     // following route use auth middleware
-    $router->group(['middleware' => 'auth'], function () use ($router) {
+    $router->group(['middleware' => 'jwt.auth'], function () use ($router) {
+        // list all users
+        $router->get('users',['as'  =>  'ListUsers',    'uses'  =>  'UserController@listUsers']);
         // access user by id
-        $router->get('user/{id}', ['uses' =>  'UserController@get_user']);
+        $router->get('user/', ['uses' =>  'UserController@getUser']);
         // access user profile of loggedIn user
         $router->get('/profile', ['as' =>'profile','uses' =>'UserController@profile']);
         // logout 
         $router->get('/auth/logout',['as'=>'logout','uses' =>'AuthController@logout']);
         // password change
-        $router->post('/auth/password_change',['as' =>  'PasswordChange','uses' =>'UserController@changePassword']);
+        $router->post('/auth/password_change',['as' =>  'PasswordChange','uses' =>'UserController@changePassword']);    
     });
 
 });
