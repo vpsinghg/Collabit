@@ -27,8 +27,12 @@ $router->get('/key', function() {
 
 
 $router->group(['prefix' => 'api/'], function() use ($router) {
+
+
+
     // register route
-    $router->post('auth/register','AuthController@register');
+    $router->post('auth/register',['as' =>'Register', 'uses'    =>  'AuthController@register']);
+
     // login route
     $router->post('auth/login', 'AuthController@login');
     // email verification route
@@ -41,6 +45,12 @@ $router->group(['prefix' => 'api/'], function() use ($router) {
 
     // request new token for account activation
     $router->post('auth/request_account_activation_mail',['as'    =>'requestAccountActivationMail', 'uses' =>'AuthController@requestAccountActivationMail']);
+    
+    // create password
+    $router->post('auth/create_password',['as' =>  'CreatePassword',   'uses'  =>  'AuthController@createPassword']);
+
+    
+    
     // following route use auth middleware
     $router->group(['middleware' => 'jwt.auth'], function () use ($router) {
         // list all users
@@ -52,7 +62,18 @@ $router->group(['prefix' => 'api/'], function() use ($router) {
         // logout 
         $router->get('/auth/logout',['as'=>'logout','uses' =>'AuthController@logout']);
         // password change
-        $router->post('/auth/password_change',['as' =>  'PasswordChange','uses' =>'UserController@changePassword']);    
+        $router->post('/auth/password_change',['as' =>  'PasswordChange','uses' =>'UserController@changePassword']); 
+        
+
+        // Admin routes 
+        $router->group(['prefix' => 'admin', 'middleware'   =>'adminControl'],function () use ($router){
+            $router->post('/delete_user',   ['as'   =>'adminDeleteUser', 'uses'  =>  'AdminController@deleteUser']);
+
+            $router->post('/users/create_user',['as'   =>'AdminCreateUser',    'uses'  =>  'AdminController@createUser']);
+            $router->get('/users', ['as'  =>  'adminListUsers', 'uses'  =>  'AdminController@showUsers']);
+            $router->get('/users/filter/',['as' =>  'AdminFilteredUser',    'uses'=>    'AdminController@showFilteredUsers']);
+        });
+
     });
 
 });

@@ -2,35 +2,45 @@
 
 namespace App\Models;
 
-use Illuminate\Auth\Authenticatable;
-use Illuminate\Contracts\Auth\Access\Authorizable as AuthorizableContract;
-use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+/* Import Models which have relationship with User Model */
+use App\Models\EmailVerificationtokens;
+use App\Models\Passwordtokens;
+
+
+
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Auth\Authenticatable;
 use Laravel\Lumen\Auth\Authorizable;
 
+// import Auth Contrats which we want to implement
+use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
+use Illuminate\Contracts\Auth\Access\Authorizable as AuthorizableContract;
 
-class User extends Model implements AuthenticatableContract, AuthorizableContract
+// Eloquent ORM softdelete Trait import
+use Illuminate\Database\Eloquent\SoftDeletes;
+
+
+class User extends Model implements AuthenticatableContract,    AuthorizableContract
 {
-    use Authenticatable, Authorizable, HasFactory;
+    // Traits we will use
+    use Authenticatable,    Authorizable,   SoftDeletes;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array
-     */
-    protected $fillable = [
-        'name', 'email','password','email_verification_token','email_verified_at','email_verified','last_login','api_token'
-    ];
+    // EmailVerificationtokens relationship register with User class , using User()->emailVerificationToken() we can access emailverification token class or table
+    // child Model of User used for child table creation
+    public function emailVerificationToken(){
+        return $this->hasOne(EmailVerificationtokens::class);
+    }
 
-    /**
-     * The attributes excluded from the model's JSON form.
-     *
-     * @var array
-     */
-    protected $hidden = [
-        'password','remember_token','api_token','email_verification_token',
-    ];
+    // Passwordtokens relationship register with User class  and using User()->emailVerificationToken() we can access emailverification token class or table
+    // child Model of User, used for child table creation
+    public function passwordToken(){
+        return $this->hasOne(Passwordtokens::class);
+    }
+
+    // fields to be filled while creating User class Instance/ object
+    protected $fillable =['email','role','createdBy'];
+
+    protected $hidden =['password','VerificationCode'];
+
+
 }
-
-

@@ -17,7 +17,7 @@ class JwtMiddleware
      */
     public function handle($request, Closure $next)
     {
-        $token = $request->get('token');
+        $token = $request->bearerToken();
 
         if(!$token) {
             // Unauthorized response if token not there
@@ -36,7 +36,7 @@ class JwtMiddleware
             return response()->json([
                 'error' => 'An error while decoding token.'
             ], 400);
-        }
+        } 
         $user = User::find($credentials->sub);
         // Now let's put the user in the request class so that you can grab it from there
         $request->auth = $user;

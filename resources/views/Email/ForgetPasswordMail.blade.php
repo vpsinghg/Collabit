@@ -2,7 +2,7 @@
 # Hi,{{ $mailData['name'] }}
 
 We got a request for forget password. Please click on this button to create new password
-@component('mail::button', ['url' => route('forgetPasswordChange',['token' => $mailData['api_token']])])
+@component('mail::button', ['url' => route('forgetPasswordChange',['token' => $mailData['token']])])
 Change Password
 @endcomponent
 
