@@ -33,15 +33,13 @@ class UserController extends Controller
         $user = User::where('id', $id)->first();
         
         if($user){
-            $res['success'] =   true;
             $res['message'] =   $user;
-            return  response($res);
+            return  response($res,200);
         }
         else{
-            $res['success'] =   false;
             $res['message'] =   "Cannot find user with given id";
 
-            return  response($res);
+            return  response($res,404);
 
         }
     }
@@ -60,7 +58,7 @@ class UserController extends Controller
         // validate incoming fields
         $this->validate($request, [
             'oldpassword' =>    'required|min:6',   
-            'newpassword'  =>   'required|min:6',
+            'newpassword'  =>   'required|min:6|confirmed',
         ]);
         $logginedUser =Auth::user();
         $user = User::where('email', $logginedUser['email'])->first();
@@ -84,7 +82,6 @@ class UserController extends Controller
         $user->save();
 
         return [
-			'status' => 'success',
 			'message' => 'Password is updated successfully.'
 		];
 

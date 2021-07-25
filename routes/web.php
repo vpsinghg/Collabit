@@ -49,14 +49,10 @@ $router->group(['prefix' => 'api/'], function() use ($router) {
     // create password
     $router->post('auth/create_password',['as' =>  'CreatePassword',   'uses'  =>  'AuthController@createPassword']);
 
-    
+
     
     // following route use auth middleware
     $router->group(['middleware' => 'jwt.auth'], function () use ($router) {
-        // list all users
-        $router->get('users',['as'  =>  'ListUsers',    'uses'  =>  'UserController@listUsers']);
-        // access user by id
-        $router->get('user/', ['uses' =>  'UserController@getUser']);
         // access user profile of loggedIn user
         $router->get('/profile', ['as' =>'profile','uses' =>'UserController@profile']);
         // logout 
@@ -67,11 +63,17 @@ $router->group(['prefix' => 'api/'], function() use ($router) {
 
         // Admin routes 
         $router->group(['prefix' => 'admin', 'middleware'   =>'adminControl'],function () use ($router){
-            $router->post('/delete_user',   ['as'   =>'adminDeleteUser', 'uses'  =>  'AdminController@deleteUser']);
+            $router->delete('/users/delete_user',   ['as'   =>'adminDeleteUser', 'uses'  =>  'AdminController@deleteUser']);
 
             $router->post('/users/create_user',['as'   =>'AdminCreateUser',    'uses'  =>  'AdminController@createUser']);
             $router->get('/users', ['as'  =>  'adminListUsers', 'uses'  =>  'AdminController@showUsers']);
             $router->get('/users/filter/',['as' =>  'AdminFilteredUser',    'uses'=>    'AdminController@showFilteredUsers']);
+
+            // list all users
+            $router->get('users',['as'  =>  'ListUsers',    'uses'  =>  'UserController@listUsers']);
+            // access user by id
+            $router->get('user/', ['uses' =>  'UserController@getUser']);
+
         });
 
     });

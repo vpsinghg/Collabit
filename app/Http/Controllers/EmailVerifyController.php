@@ -25,9 +25,8 @@ class EmailVerifyController extends Controller
         $token =$request['email_verification_token'];
         // token is present or not
     	if($token == null) {
-            $res['success'] =   false;
             $res['message'] =   'Invalid Login Attempt, Token is null';
-            return response()->json($res, Response::HTTP_OK);
+            return response()->json($res, 401);
 
     	}
         // whereHas helps use build query for child table here emailVerificationToken is child table of User
@@ -36,7 +35,6 @@ class EmailVerifyController extends Controller
         })->first();
         // token tempered
         if($user == null ){
-            $res['success'] =   false;
             $res['message'] =   'Invalid Verification token,    Token is tampered';
             return response()->json($res, 401);
         }
@@ -44,14 +42,12 @@ class EmailVerifyController extends Controller
         else{
             // Account is already verified
             if($user->isVerified    ==  1){
-                $res['success'] =   true;
                 $res['message'] =   'Your account is already verified, You can login';      
                 return response()->json($res,200);  
             }
             // verify account
             $user->isVerified =1;
             $user->save();
-            $res['success'] =   true;
             $res['message'] =   'Your account is activated, you can log in now';
     
             return response()->json($res, Response::HTTP_OK);

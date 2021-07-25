@@ -7,11 +7,10 @@ class Controller extends BaseController
 {
     //
 
-    protected function respondWithToken($token,$user,$ftoken){
+    protected function respondWithToken($token,$user){
         return response()->json([
             'user'  =>  $user,
-            'ftoken'    =>  $ftoken,
-            'token '    =>  $token,
+            'token'    =>  $token,
             'token_type'    =>  'bearer',
         ]);
     }

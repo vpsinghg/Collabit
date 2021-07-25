@@ -7,7 +7,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
 
-class CreatePassword extends Mailable
+class CreatePasswordMail extends Mailable
 {
     use Queueable, SerializesModels;
     public $mailData;

@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Queue;
+
 use Firebase\JWT\JWT;
 use Firebase\JWT\ExpiredException;
 
@@ -10,11 +12,13 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Carbon\Carbon;
 use Illuminate\Contracts\Auth\Authenticatable;
-use App\Mail\AccountActivationMail;
-use App\Mail\ForgetPasswordMail;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
+
+// Import Jobs
+use App\Jobs\AccountVerificationMail;
+use App\Jobs\ForgotPasswordMail;
 
 
 // import Model Classes 
@@ -64,8 +68,8 @@ class AuthController extends Controller
         // validate fields
         $this->validate($request, [
             'email' => 'required|email|unique:users',
-            'password' => 'required|min:6',   
-            'name'  =>   'required',
+            'password' => 'required|confirmed|min:6',
+            'name'  =>   'required'
         ]);
         // password hash
         $password   =   Hash::make($request->input('password'), [
@@ -96,13 +100,10 @@ class AuthController extends Controller
         
         $user->passwordToken()->save($passwordtoken);
         // Mail for account verification
-        $mailData =['name'=>$user->name,'email_verification_token'=>$emailVerificationtoken->verificationCode];
-        Mail::to($email)->send(new AccountActivationMail($mailData));
-
-
-        $res['success'] =   true;
+        $mailData =['email' => $user->email, 'name'=>$user->name,'email_verification_token'=>$emailVerificationtoken->verificationCode];
+        dispatch(new AccountVerificationMail($mailData));
         $res['message'] =   "Successfully Registered, Please check your email to activate your account";
-        return response()->json($res, Response::HTTP_OK);
+        return response()->json($res, 201);
         
     }
 
@@ -113,6 +114,8 @@ class AuthController extends Controller
         $this->validate($request, [
             'email' => 'required|email|exists:users,email',
             'password' => 'required|min:6',   
+            'grecaptcharesponse' => 'required',
+
         ]);
 
 
@@ -121,9 +124,8 @@ class AuthController extends Controller
         // users exists or not with such email
         $user  =   User::where('email', $email)->first();
         if(! $user){
-            $res['success'] =   false;
             $res['message'] =   'Account with this Email id does not exits.';
-            return  response($res);
+            return  response($res,401);
         }
         else{
             // is Account verified or not ?
@@ -131,23 +133,20 @@ class AuthController extends Controller
                 // password is correct or not
                 if(Hash::check($password,$user->password)){
                     // this api_token generated here will be used for checking request are from loggined user or not
-                    $passwordtoken =$user->passwordToken()->first();
-                    return $this->respondWithToken($this->jwt($user),$user->only(['id','name','role']),$passwordtoken->verificationCode);
+                    return $this->respondWithToken($this->jwt($user),$user->only(['id','name','role']));
                     
                 }
                 // password does not change case
                 else{
-                    $res['success'] =   false;
                     $res['message'] =   'You entered incorrect password please Try again!';
-                    return  response($res);    
+                    return  response($res,403);    
                 }
     
             }
             // Account exist but account is not activated yet because its not verified yet
             else{
-                $res['success'] =   true;
                 $res['message'] =   'Please check your mail box and activate your account!';
-                return  response($res);
+                return  response($res,403);
     
             }
         }
@@ -164,13 +163,11 @@ class AuthController extends Controller
         $user  =   User::where('email', $email)->first();
 
         if(! $user){
-            $res['success'] =   false;
             $res['message'] =   "Your account with this email does not  exist. Please SignUp";
-            return response()->json($res, Response::HTTP_OK); 
+            return response()->json($res, 401); 
         }
         // check account is already verified or not . If already verified send messsage for login
         if($user->isVerified){
-            $res['success'] =   true;
             $res['message'] =   "Your account with this email is already verified. Please Login";
             return response()->json($res, Response::HTTP_OK); 
         }
@@ -178,10 +175,9 @@ class AuthController extends Controller
         $verificationCode =   Str::random(32);
         // update verificationCode
         $user->emailVerificationToken()->update(['verificationCode' => $verificationCode]);
-        $mailData =['name'  =>$user['name'],'email_verification_token'  =>$verificationCode];
-        Mail::to($email)->send(new AccountActivationMail($mailData));
+        $mailData =['email' => $user->email, 'name'=>$user->name,'email_verification_token'=>$verificationCode];
+        dispatch(new AccountVerificationMail($mailData));
 
-        $res['success'] =   true;
         $res['message'] =   "Please check your email to activate your account";
         return response()->json($res, Response::HTTP_OK); 
 
@@ -190,7 +186,6 @@ class AuthController extends Controller
 
     public function logout(){        
 		return [
-			'status' => 'success',
 			'message' => 'Logout successfully.'
 		];
 
@@ -205,16 +200,14 @@ class AuthController extends Controller
         $email  =   $request['email'];
         $user  =   User::where('email', $email)->first();
         if(! $user){
-            $res['success'] =   false;
             $res['message'] =   'Account with this Email id does not exits.';
-            return  response($res);
+            return  response($res,403);
         }
         $verificationCode =   Str::random(32);
         $user->passwordToken()->update(['verificationCode'=>$verificationCode]);
-        $mailData   =   ['name'=>$user->name,'token'=>$verificationCode];
-        Mail::to($email)->send(new ForgetPasswordMail($mailData));
+        $mailData   =   ['email'=>  $user->email,   'name'=>$user->name,'token'=>$verificationCode];
+        dispatch(new ForgotPasswordMail($mailData));
 
-        $res['success'] =   true;
         $res['message'] =   "We have sent you a mail on registered email id , Please check your email to change your account password";
         return response()->json($res, Response::HTTP_OK);
 
@@ -223,24 +216,23 @@ class AuthController extends Controller
     public function forgetPasswordChange(Request $request){
         // field validation
         $this->validate($request, [
-            'password' => 'required|confirmed|min:6'
+            'password' => 'required|confirmed|min:6',
+            'token'     =>'required|string'
         ]);
         $token  =   $request['token'];
         $password   =   $request->input('password');
         // token exists or not in url
         if(! $token){
-            $res['success'] =   false;
             $res['message'] =   'token is NULL, Please check your mail for valid password change url';
-            return  response($res);
+            return  response($res,403);
         }
         else{
                 $user   =   User::whereHas('passwordToken',function  (Builder $query) use ($token){
                     $query->where('verificationCode',$token);
                 })->first();
                 if(! $user){
-                $res['status'] =false;
                 $res['message'] ="Invalid token,    Might be tampered. Please check your Mail Inbox and click on Change Password button";
-                return  response($res);
+                return  response($res,403);
             }
             else{
                 $password   =   Hash::make($request->input('password'), [
@@ -248,7 +240,6 @@ class AuthController extends Controller
                 ]);
                 $user->password =$password;
                 $user->save();
-                $res['status'] =true;
                 $res['message'] ="Your password has been updated .please login with updated credentials";
                 return  response($res);
 
@@ -269,18 +260,16 @@ class AuthController extends Controller
         $password   =   $request->input('password');
         // token exists or not in url
         if(! $token){
-            $res['success'] =   false;
             $res['message'] =   'token is NULL, Please check your mail for valid password change url';
-            return  response($res);
+            return  response($res,403);
         }
         else{
                 $user   =   User::whereHas('passwordToken',function  (Builder $query) use ($token){
                     $query->where('verificationCode',$token);
                 })->first();
                 if(! $user){
-                $res['status'] =false;
                 $res['message'] ="Invalid token, Might be tampered. Please check your Mail Inbox and click on Create Password button";
-                return  response($res);
+                return  response($res,403);
             }
             else{
                 $password   =   Hash::make($request->input('password'), [
@@ -289,7 +278,6 @@ class AuthController extends Controller
                 $user->password =   $password;
                 $user->isVerified   =   1;
                 $user->save();
-                $res['status'] =true;
                 $res['message'] ="Your password has been updated .please login with updated credentials";
                 return  response($res);
 

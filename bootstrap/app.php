@@ -61,6 +61,8 @@ $app->singleton(
 
 $app->configure('app');
 
+
+
 /*
 |--------------------------------------------------------------------------
 | Register Middleware
@@ -105,8 +107,9 @@ $app->register(App\Providers\AuthServiceProvider::class);
 
 /* Mail Service Provide */
 $app->register(Illuminate\Mail\MailServiceProvider::class);
-
 // $app->register(App\Providers\EventServiceProvider::class);
+$app->register(Illuminate\Redis\RedisServiceProvider::class);
+
 
 /*
 |--------------------------------------------------------------------------
@@ -137,7 +140,17 @@ $app->alias('mailer', Illuminate\Mail\Mailer::class);
 $app->alias('mailer', Illuminate\Contracts\Mail\Mailer::class);
 $app->alias('mailer', Illuminate\Contracts\Mail\MailQueue::class);
 
+// configure cors
+$app->configure('cors');
 
 
+$app->middleware([
+    // ...
+    Fruitcake\Cors\HandleCors::class,
+]);
+
+
+// cors
+$app->register(Fruitcake\Cors\CorsServiceProvider::class);
 
 return $app;
