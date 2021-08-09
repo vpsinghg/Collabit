@@ -5,7 +5,7 @@ namespace App\Models;
 /* Import Models which have relationship with User Model */
 use App\Models\EmailVerificationtokens;
 use App\Models\Passwordtokens;
-
+use App\Models\Task;
 
 
 use Illuminate\Database\Eloquent\Model;
@@ -35,6 +35,10 @@ class User extends Model implements AuthenticatableContract,    AuthorizableCont
     // child Model of User, used for child table creation
     public function passwordToken(){
         return $this->hasOne(Passwordtokens::class);
+    }
+
+    public function tasks(){
+        return $this->hasMany(Task::class);
     }
 
     // fields to be filled while creating User class Instance/ object

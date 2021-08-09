@@ -22,35 +22,7 @@ class UserController extends Controller
 
     }
 
-    //
-    /**
-     * Get user by id
-     *
-     * URL /user/{id}
-     */ 
-    public function getUser(Request $request) {
-        $id =$request['id'];
-        $user = User::where('id', $id)->first();
-        
-        if($user){
-            $res['message'] =   $user;
-            return  response($res,200);
-        }
-        else{
-            $res['message'] =   "Cannot find user with given id";
 
-            return  response($res,404);
-
-        }
-    }
-
-    public function listUsers(Request $request) {
-        return[
-            'success' =>true,
-            'data' => User::All(),
-        ];
-
-    }
 
 
     public function changePassword(Request $request) {
@@ -77,8 +49,6 @@ class UserController extends Controller
         ]);
         // password update and save
         $user->password =   $newpassword;
-
-        $user->api_token =sha1(time());
         $user->save();
 
         return [
@@ -95,6 +65,32 @@ class UserController extends Controller
             'data' => Auth::user()
         ];
 	}
+
+    public function getUser(Request $request) {
+        $id =$request['id'];
+        $user = User::find($id);
+        
+        if($user){
+            $res['data'] =   $user;
+            return  response($res,200);
+        }
+        else{
+            $res['message'] =   "Cannot find user with given id";
+
+            return  response($res,404);
+
+        }
+    }
+
+    public function getUsersList(Request $request){
+        $logginedUser   =   Auth::user();
+        $users =User::where('deleted_at', NULL)
+            ->select('id', 'name','email')
+            ->get();
+        $res['data']  =$users;
+        return response()->json($res,200);
+    }
+
 
 
 }

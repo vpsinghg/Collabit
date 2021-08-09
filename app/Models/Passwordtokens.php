@@ -16,6 +16,7 @@ class Passwordtokens extends Model
     public function user(){
         return  $this->belongsTo(user::class);
     }
+    protected $table    =   'passwordtokens';
 
     protected $fillable =   ['user_id'];
 

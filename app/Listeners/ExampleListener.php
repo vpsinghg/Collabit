@@ -27,5 +27,6 @@ class ExampleListener
     public function handle(ExampleEvent $event)
     {
         //
+        
     }
 }

@@ -60,6 +60,9 @@ class AdminController extends Controller
             })->when($email,function($query,$email){
                 return $query->where('email','LIKE','%'.$email.'%');
             })->when($createdBy,function($query,$createdBy){
+                if($createdBy ==='all'){
+                    return $query;
+                }
                 return $query->where('createdBy', $createdBy);
             })->when($verified,function($query,$verified){
                 if($verified ==='verifiedusers'){
@@ -146,16 +149,33 @@ class AdminController extends Controller
 
     }
 
-    public function showUsers(Request $request){
-        $userloggedIn   =   Auth::user();
-        $users =User::all();
-        if($request->has('role')){
-            $users=$users->where('role',$request['role']);
+        //
+    /**
+     * Get user by id
+     *
+     * URL /user/{id}
+     */ 
+    public function getUser(Request $request) {
+        $id =$request['id'];
+        $user = User::where('id', $id)->first();
+        
+        if($user){
+            $res['message'] =   $user;
+            return  response($res,200);
         }
-        $res['message'] =   $users->get();
-        return response()->json($res,200);
+        else{
+            $res['message'] =   "Cannot find user with given id";
 
+            return  response($res,404);
+
+        }
     }
 
+    public function getAdminUsers(Request $request) {
+        $admins =   User::where('role','admin')
+            ->select('id', 'name','email')
+            ->get();
+        return response()->json(['admins'=>$admins],200);
+    }
 
 }

@@ -1,9 +1,9 @@
 @component('mail::message')
 # Hi,{{ $mailData['name'] }}
 
-We got a request for forget password. Please click on this button to create new password
+Your account has been created. Please click on this button to create new password
 @component('mail::button', ['url' => 'http://localhost:3000/createpassword/'.$mailData['token']])
-Change Password
+create Password
 @endcomponent
 
 Thanks,<br>

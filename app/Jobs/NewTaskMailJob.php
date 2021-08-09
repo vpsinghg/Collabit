@@ -1,7 +1,6 @@
 <?php
 
 namespace App\Jobs;
-
 use App\Jobs\Job;
 use Illuminate\Support\Facades\Mail;
 
@@ -11,11 +10,11 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 
-// import ForgetMail
-use App\Mail\ForgetPasswordMail;
+// import New TASK MAIL
+use App\Mail\NewTaskMail;
+use App\Mail\DailyTaskreminderMail;
 
-
-class ForgotPasswordMail extends Job implements ShouldQueue
+class NewTaskMailJob extends Job implements ShouldQueue
 {
     use SerializesModels;
 
@@ -40,7 +39,8 @@ class ForgotPasswordMail extends Job implements ShouldQueue
     public function handle()
     {
         //
-        Mail::to($this->mailData['email'])->send(new ForgetPasswordMail($this->mailData));
-        
+        // Mail::to($this->mailData['email'])->send(new NewTaskMail($this->mailData));
+        Mail::to($this->mailData['email'])->send(new DailyTaskreminderMail($this->mailData));
+
     }
 }

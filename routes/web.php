@@ -66,15 +66,32 @@ $router->group(['prefix' => 'api/'], function() use ($router) {
             $router->delete('/users/delete_user',   ['as'   =>'adminDeleteUser', 'uses'  =>  'AdminController@deleteUser']);
 
             $router->post('/users/create_user',['as'   =>'AdminCreateUser',    'uses'  =>  'AdminController@createUser']);
-            $router->get('/users', ['as'  =>  'adminListUsers', 'uses'  =>  'AdminController@showUsers']);
             $router->get('/users/filter/',['as' =>  'AdminFilteredUser',    'uses'=>    'AdminController@showFilteredUsers']);
-
-            // list all users
-            $router->get('users',['as'  =>  'ListUsers',    'uses'  =>  'UserController@listUsers']);
-            // access user by id
-            $router->get('user/', ['uses' =>  'UserController@getUser']);
-
+            $router->get('/getadminusers',['as' =>  'GetAdminUsers', 'uses'    =>  'AdminController@getAdminUsers']);
         });
+        $router->get('user/', ['uses' =>  'UserController@getUser']);
+        $router->get('/users/getuserslist',['as'=>'GetUsers','uses'=>"UserController@getUsersList"]);
+        // Tasks routes
+        $router->group(['prefix'    =>  'tasks'],    function() use ($router){
+            $router->post('create', ['as'   =>  'CreateTask', 'uses'    =>  'TaskController@createTask']);
+            $router->delete('delete/{task_id}', ['as'   =>  'DeleteTask', 'uses'    =>  'TaskController@deleteTask']);
+            $router->put('update', ['as'   =>  'UpdateTask', 'uses'    =>  'TaskController@updateTask']);
+            $router->post('update/status', ['as'   =>  'TaskStatusUpdate'  ,   'uses'  =>  'TaskController@taskStatusUpdate']);
+            $router->post('filter/{type}/{id}',  ['as'   =>  'TaskFilter'    ,   'uses'  =>  'TaskController@taskFilter']);
+            $router->get('all'  ,['as'  =>  'AllTask' , 'uses'  =>  'TaskController@getAllTasks']);
+            $router->get('created'  ,['as'  =>  'CreatedTasks' , 'uses'  =>  'TaskController@getCreatedTasks']);
+            $router->get('todotasks'  ,['as'  =>  'Todotasks' , 'uses'  =>  'TaskController@getAssginedTasks']);
+            $router->get('data',    ['as'   =>  'TaskData' ,    'uses'  =>  'TaskController@data']);
+            // today's task
+            $router->get('todotasks/today'  ,['as'  =>  'TodotasksToday' , 'uses'  =>  'TaskController@getAssginedTasksToday']);
+            $router->get('bargraphdata/{tasktype}/',['uses'=>'TaskController@getTaskDataBarGraph']);
+
+            // task data
+            $router->get('performancedata/{tasktype}/',['uses'    =>  'TaskController@taskPerformanceData']);
+            //assignees list for a given user
+            $router->get('assignees/',['uses'    =>  'TaskController@assigneeList']);
+        });
+        $router->get('dailytask/',['uses'    =>  'TaskController@dailyTasksMail']);
 
     });
 

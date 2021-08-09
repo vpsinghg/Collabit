@@ -21,7 +21,7 @@ class CreateUsersTable extends Migration
             $table->boolean('isVerified')->default(0);
             $table->bigInteger('createdBy')->nullable();
             $table->bigInteger('deletedBy')->nullable();
-            $table->string('role')->default('normal');
+            $table->enum('role',['normal','admin'])->default('normal');
             $table->softDeletes();
             $table->timestamps();
         });

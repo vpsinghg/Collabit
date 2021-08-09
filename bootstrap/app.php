@@ -89,6 +89,12 @@ $app->routeMiddleware([
 $app->routeMiddleware([
     'adminControl'  =>App\Http\Middleware\AdminMiddleware::class,
 ]);
+
+$app->middleware([
+    // ...
+    Fruitcake\Cors\HandleCors::class,
+]);
+
 /*
 |--------------------------------------------------------------------------
 | Register Service Providers
@@ -107,9 +113,8 @@ $app->register(App\Providers\AuthServiceProvider::class);
 
 /* Mail Service Provide */
 $app->register(Illuminate\Mail\MailServiceProvider::class);
-// $app->register(App\Providers\EventServiceProvider::class);
+$app->register(App\Providers\EventServiceProvider::class);
 $app->register(Illuminate\Redis\RedisServiceProvider::class);
-
 
 /*
 |--------------------------------------------------------------------------
@@ -129,6 +134,18 @@ $app->router->group([
 });
 
 
+// register pusher
+$app->alias('Pusher',Pusher\Pusher::class);
+
+
+// cors
+$app->register(Fruitcake\Cors\CorsServiceProvider::class);
+
+// configure cors
+$app->configure('cors');
+
+$app->configure('broadcasting');
+
 /* register the mailer and its aliases */
 // configure mail.php in config
 $app->configure('mail');
@@ -140,17 +157,6 @@ $app->alias('mailer', Illuminate\Mail\Mailer::class);
 $app->alias('mailer', Illuminate\Contracts\Mail\Mailer::class);
 $app->alias('mailer', Illuminate\Contracts\Mail\MailQueue::class);
 
-// configure cors
-$app->configure('cors');
 
-
-$app->middleware([
-    // ...
-    Fruitcake\Cors\HandleCors::class,
-]);
-
-
-// cors
-$app->register(Fruitcake\Cors\CorsServiceProvider::class);
 
 return $app;
