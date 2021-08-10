@@ -12,7 +12,6 @@ use Illuminate\Queue\SerializesModels;
 
 // import New TASK MAIL
 use App\Mail\NewTaskMail;
-use App\Mail\DailyTaskreminderMail;
 
 class NewTaskMailJob extends Job implements ShouldQueue
 {
@@ -39,8 +38,7 @@ class NewTaskMailJob extends Job implements ShouldQueue
     public function handle()
     {
         //
-        // Mail::to($this->mailData['email'])->send(new NewTaskMail($this->mailData));
-        Mail::to($this->mailData['email'])->send(new DailyTaskreminderMail($this->mailData));
+        Mail::to($this->mailData['email'])->send(new NewTaskMail($this->mailData));
 
     }
 }

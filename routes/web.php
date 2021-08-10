@@ -77,10 +77,7 @@ $router->group(['prefix' => 'api/'], function() use ($router) {
             $router->delete('delete/{task_id}', ['as'   =>  'DeleteTask', 'uses'    =>  'TaskController@deleteTask']);
             $router->put('update', ['as'   =>  'UpdateTask', 'uses'    =>  'TaskController@updateTask']);
             $router->post('update/status', ['as'   =>  'TaskStatusUpdate'  ,   'uses'  =>  'TaskController@taskStatusUpdate']);
-            $router->post('filter/{type}/{id}',  ['as'   =>  'TaskFilter'    ,   'uses'  =>  'TaskController@taskFilter']);
-            $router->get('all'  ,['as'  =>  'AllTask' , 'uses'  =>  'TaskController@getAllTasks']);
-            $router->get('created'  ,['as'  =>  'CreatedTasks' , 'uses'  =>  'TaskController@getCreatedTasks']);
-            $router->get('todotasks'  ,['as'  =>  'Todotasks' , 'uses'  =>  'TaskController@getAssginedTasks']);
+            $router->get('filter/{type}/{id}',  ['as'   =>  'TaskFilter'    ,   'uses'  =>  'TaskController@taskFilter']);
             $router->get('data',    ['as'   =>  'TaskData' ,    'uses'  =>  'TaskController@data']);
             // today's task
             $router->get('todotasks/today'  ,['as'  =>  'TodotasksToday' , 'uses'  =>  'TaskController@getAssginedTasksToday']);

@@ -53,9 +53,6 @@ class Kernel extends ConsoleKernel
                     dispatch(New DailyTaskreminderMailJob($usermaildata));
                 }
             }    
-        })->daily()
-        ->between('8:00', '9:30')
-        ->timezone('Asia/Kolkata');
-
+        })->daily();
     }
 }

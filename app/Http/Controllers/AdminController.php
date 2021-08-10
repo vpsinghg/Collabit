@@ -75,9 +75,9 @@ class AdminController extends Controller
                     return $query;
                 }
             })
-            ->get();
-        $res['users']   =   $users;
-        return response()->json($res,200);
+            ->paginate(5);
+        // $res['users']   =   $users;
+        return response()->json($users,200);
     }
 
 

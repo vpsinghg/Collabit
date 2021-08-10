@@ -51,7 +51,7 @@ class TaskController extends Controller
 
         // Notification 
         $notification   =   new TaskNotificationModel;
-        $notification->message  =   'A  Task titled '.$task->title.' status has been assigned to you';
+        $notification->message  =   'A  Task titled '.$task->title.' has been assigned to you';
         $notification->id = $task->assignee;
         $notification->channel = 'taskassignedchannel';
         $notification->event = 'taskassignedevent';
@@ -59,6 +59,8 @@ class TaskController extends Controller
 
         // mail job dispatch
         $mailData['email']  =   User::find($request['assignee'])->email;
+        $mailData['subject']    =   "New Task Assignment";
+        $mailData['type']   =   "newtaskassigned";
         $mailData['name']   =   User::find($request['assignee'])->name;
         $mailData['task']   =   $task;
         $job =new NewTaskMailJob($mailData);
@@ -111,6 +113,16 @@ class TaskController extends Controller
             $task->dueDate  =   $date->format('Y-m-d H:i:s');
             $task->update();
             $res['message'] =   "Task is updated successfully";
+
+            // mail job dispatch
+            $mailData['email']  =   User::find($task['assignee'])->email;
+            $mailData['subject']    =   "Task titled ".$task->title." Details Updated";
+            $mailData['type']   =   'taskupdated';
+            $mailData['name']   =   User::find($task['assignee'])->name;
+            $mailData['task']   =   $task;
+            $job =new NewTaskMailJob($mailData);
+            dispatch($job);
+
             return response()->json($res,200);
 
         }
@@ -155,6 +167,7 @@ class TaskController extends Controller
     }
 
     public function taskFilter(Request $request ,   $type,  $id){
+        $id =   (int)   $id;
         $loggedInUser   =   Auth::user();
         $keyword   =   $request['keyword'];
         $assignee   =   $request['assignee'];
@@ -165,7 +178,7 @@ class TaskController extends Controller
         if($type ==='todo'){
             $tasks = $tasks->where('assignee',$id);
         }
-        elseif($type ==='assgined'){
+        elseif($type ==='assigned'){
             $tasks   =   User::find($id)->tasks()->orderBy('dueDate');
         }
         elseif($type   ==='all' && Auth::user()->role ==='admin'){
@@ -202,9 +215,8 @@ class TaskController extends Controller
             ->orderBy('dueDate')
             ->select(array('tasks.id','tasks.title','tasks.status','tasks.description','tasks.assignee','tasks.user_id','dueDate','tasks.created_at', 'u1.name as creatorname', 'u2.name as assigneename'));
 
-        
-        $res['tasks']    =   $tasks->get();
-        return response()->json($res,200);
+        $tasks    =   $tasks->paginate(5);
+        return response()->json($tasks,200);
 
     }
     
@@ -251,10 +263,70 @@ class TaskController extends Controller
     
         }
 
-        $data=$this->BarGraphDataFormat($tasks);
-        $res['data']   =   $data;
-        return  response()->json($res,200);
+        // $data=$this->BarGraphDataFormat($tasks);
+        $data=$this->HighchartBarGraphFormat($tasks);
+        return  response()->json($data,200);
     }
+    
+    public function HighchartBarGraphFormat($tasks){
+        $categories=array();
+        $finaldata =array();
+        $completedontime["name"]="Completed on Time";
+        $completedontime_series =   array();
+        $completedafterdeadline["name"]="Completed After Deadline";
+        $completedafterdeadline_series =   array();
+        $overdue["name"]="OverDue";
+        $overdue_series =   array();
+        $inprogress["name"]="In Progress";
+        $inprogress_series =   array();
+        $noactivity["name"]="No Activity";
+        $noactivity_series =   array();
+
+        foreach ($tasks as $itemKey => $itemValue) {
+            array_push($categories,$itemKey);
+            $assigned_count =   0;
+            $inprogressed_count =   0;
+            $completedontime_count =   0;
+            $completedAfterDeadlineCount =0;
+            $overdue_count =   0;
+            $currenttime =   Carbon::now('Asia/Kolkata');
+
+            foreach($itemValue as $value){
+                if($value['status']==='assigned'){
+                    $assigned_count +=   1;
+                }
+                elseif($value['status']==='in-progress'){
+                    $inprogressed_count +=  1;
+                }
+                elseif($value['status']==='completed'){
+                    if($value['dueDate'] >= $value['updated_at']){
+                        $completedontime_count    +=  1;
+                    }
+                    else{
+                        $completedAfterDeadlineCount +=1;
+                    }
+                }
+                if($value['dueDate']<$currenttime && $value['status']!=='completed'){
+                    $overdue_count  +=  1;
+                }
+            }
+            array_push($completedontime_series,$completedontime_count);
+            array_push($completedafterdeadline_series,$completedAfterDeadlineCount);
+            array_push($overdue_series,$overdue_count);
+            array_push($inprogress_series,$inprogressed_count);
+            array_push($noactivity_series,$assigned_count);
+        }
+        $completedontime['data']    =   $completedontime_series;
+        $completedafterdeadline['data'] =   $completedafterdeadline_series;
+        $overdue['data']    =   $overdue_series;
+        $inprogress['data']   =   $inprogress_series;
+        $noactivity['data'] =   $noactivity_series;
+        array_push($finaldata,$completedontime,$completedafterdeadline,$overdue,$inprogress,$noactivity);
+        $res['categories']  =$categories;
+        $res['series']  =   $finaldata;
+        return $res;
+    }
+
 
     public function BarGraphDataFormat($tasks){
         $field_name =array('Date','Completed on Time','Completed after Deadline','OverDue','In Progress','No Activity');
@@ -295,47 +367,6 @@ class TaskController extends Controller
         }
         return $data;
     }
-
-    public function getAssginedTasks(){
-        $loggedInUser   =   Auth::user();
-        $tasks  =   Task::where('assignee',$loggedInUser->id)
-        ->join('users as u1','tasks.user_id','=','u1.id')
-        ->join('users as u2','tasks.assignee','=','u2.id')
-        ->where('tasks.deleted_at',NULL)
-        ->orderBy('dueDate')
-        ->select(array('tasks.id','tasks.title','tasks.status','tasks.description','tasks.assignee','tasks.user_id','dueDate','tasks.created_at', 'u1.name as creatorname', 'u2.name as assigneename'));
-        $res['tasks']    =  $tasks->get();
-        return  response()->json($res,200);
-    }
-    public function getCreatedTasks(){
-        $loggedInUser   =   Auth::user();
-        $tasks  =   User::find($loggedInUser->id)->tasks()
-        ->join('users as u1','tasks.user_id','=','u1.id')
-        ->join('users as u2','tasks.assignee','=','u2.id')
-        ->where('tasks.deleted_at',NULL)
-        ->orderBy('dueDate')
-        ->select(array('tasks.id','tasks.title','tasks.status','tasks.description','tasks.assignee','tasks.user_id','dueDate','tasks.created_at', 'u1.name as creatorname', 'u2.name as assigneename'));
-        $res['tasks']    =   $tasks->get();
-        return response()->json($res,200);
-    }
-
-    public function getAllTasks(){
-        $loggedInUser   =   Auth::user();
-        $user   =   User::find($loggedInUser->id);
-        if($user->role ==='admin'){
-            $tasks  =   Task::join('users as u1','tasks.user_id','=','u1.id')
-            ->join('users as u2','tasks.assignee','=','u2.id')
-            ->where('tasks.deleted_at',NULL)
-            ->orderBy('dueDate')
-            ->select(array('tasks.id','tasks.title','tasks.status','tasks.description','tasks.assignee','tasks.user_id','dueDate','tasks.created_at', 'u1.name as creatorname', 'u2.name as assigneename'));
-            $res['tasks']    =   $tasks->get();
-            return response()->json($res,200);
-        }
-        else{
-            return response()->json(['message'  =>  "You are not authorized for this action"],401);
-        }
-    }
-
 
     public function taskPerformanceData(Request $request,$tasktype){
         $id =  $request['profile_id'];

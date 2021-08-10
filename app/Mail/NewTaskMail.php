@@ -28,7 +28,7 @@ class NewTaskMail extends Mailable
      */
     public function build()
     {
-        return $this->markdown('Email.NewTaskMail')->with('mailData', $this->mailData);
+        return $this->subject($this->mailData['subject'])->markdown('Email.NewTaskMail')->with('mailData', $this->mailData);
 
     }
 }

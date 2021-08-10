@@ -2,7 +2,7 @@
 # Hi,{{ $mailData['name'] }}
 
 Welcome to {{config('app.name')}}. Please click on following button and verify your email
-@component('mail::button', ['url' => route('Verify',['email_verification_token' => $mailData['email_verification_token']])])
+@component('mail::button', ['url' => 'http://localhost:3000/auth/email_verify/'.$mailData['email_verification_token']])
 Verify Your email
 @endcomponent
 
